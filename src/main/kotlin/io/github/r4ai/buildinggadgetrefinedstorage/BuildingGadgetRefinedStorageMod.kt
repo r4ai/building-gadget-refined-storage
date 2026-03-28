@@ -1,9 +1,6 @@
 package io.github.r4ai.buildinggadgetrefinedstorage
 
 import io.github.r4ai.buildinggadgetrefinedstorage.content.ModContent
-import io.github.r4ai.buildinggadgetrefinedstorage.bridge.platform.RefinedStorageBridgeBlockEntity
-import io.github.r4ai.buildinggadgetrefinedstorage.bridge.platform.BridgeLookup
-import io.github.r4ai.buildinggadgetrefinedstorage.bridge.core.FluidProxyFluidHandler
 import net.minecraft.world.item.CreativeModeTabs
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.capabilities.Capabilities
@@ -29,19 +26,16 @@ class BuildingGadgetRefinedStorageMod {
         event.registerBlockEntity(
             Capabilities.ItemHandler.BLOCK,
             bridgeType,
-            { blockEntity: RefinedStorageBridgeBlockEntity, _ -> blockEntity.itemHandler },
+            NullSafeCapabilityProviders.itemHandlerProvider(),
         )
         event.registerBlockEntity(
             RefinedStorageNeoForgeApi.INSTANCE.getNetworkNodeContainerProviderCapability(),
             bridgeType,
-            { blockEntity: RefinedStorageBridgeBlockEntity, _ -> blockEntity.getContainerProvider() },
+            NullSafeCapabilityProviders.networkNodeContainerProvider(),
         )
         event.registerItem(
             Capabilities.FluidHandler.ITEM,
-            { stack, _ ->
-                val proxyRef = ModContent.fluidProxyRef(stack) ?: return@registerItem null
-                FluidProxyFluidHandler(stack, proxyRef, BridgeLookup::resolveBackend)
-            },
+            NullSafeCapabilityProviders.fluidProxyItemProvider(),
             ModContent.FLUID_PROXY_ITEM.get(),
         )
     }

@@ -47,7 +47,13 @@ class RefinedStorageBridgeBlockEntity(
         containerProvider.update(level)
     }
 
-    private fun serverTick(state: BlockState) {
+    private fun serverTick() {
+        val level = level ?: return
+        val currentState = level.getBlockState(blockPos)
+        if (currentState.block !is RefinedStorageBridgeBlock) {
+            return
+        }
+
         val network = mainNetworkNode.network
         val newOperational = if (network == null) {
             false
@@ -64,20 +70,48 @@ class RefinedStorageBridgeBlockEntity(
         mainNetworkNode.setActive(newOperational)
         if (newOperational != isOperational) {
             isOperational = newOperational
-            if (level != null && state.getValue(RefinedStorageBridgeBlock.ACTIVE) != newOperational) {
-                level?.setBlock(blockPos, state.setValue(RefinedStorageBridgeBlock.ACTIVE, newOperational), Block.UPDATE_ALL)
-            }
+            updateActiveBlockState(level, currentState, newOperational)
+        }
+    }
+
+    private fun updateActiveBlockState(level: Level, currentState: BlockState, active: Boolean) {
+        if (!shouldReflectActiveState(isRemoved, currentState.block is RefinedStorageBridgeBlock)) {
+            return
+        }
+        if (currentState.getValue(RefinedStorageBridgeBlock.ACTIVE) != active) {
+            level.setBlock(blockPos, currentState.setValue(RefinedStorageBridgeBlock.ACTIVE, active), Block.UPDATE_ALL)
         }
     }
 
     companion object {
         private const val ENERGY_USAGE_PER_TICK: Long = 1L
 
+        internal fun shouldReflectActiveState(
+            isRemoved: Boolean,
+            hasSameBlockEntity: Boolean,
+            hasBridgeBlock: Boolean,
+        ): Boolean = !isRemoved && hasSameBlockEntity && hasBridgeBlock
+
+        private fun shouldReflectActiveState(
+            isRemoved: Boolean,
+            hasBridgeBlock: Boolean,
+        ): Boolean = shouldReflectActiveState(
+            isRemoved = isRemoved,
+            hasSameBlockEntity = true,
+            hasBridgeBlock = hasBridgeBlock,
+        )
+
         fun tickServer(level: Level, pos: BlockPos, state: BlockState, blockEntity: RefinedStorageBridgeBlockEntity) {
-            if (level.isClientSide) {
+            if (level.isClientSide || blockEntity.isRemoved) {
                 return
             }
-            blockEntity.serverTick(state)
+            if (level.getBlockEntity(pos) !== blockEntity) {
+                return
+            }
+            if (level.getBlockState(pos).block !is RefinedStorageBridgeBlock) {
+                return
+            }
+            blockEntity.serverTick()
         }
     }
 }
