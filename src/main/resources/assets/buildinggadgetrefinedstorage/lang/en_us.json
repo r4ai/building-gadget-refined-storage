@@ -1,0 +1,8 @@
+{
+  "block.buildinggadgetrefinedstorage.refined_storage_bridge": "Refined Storage Bridge",
+  "item.buildinggadgetrefinedstorage.fluid_proxy": "Fluid Proxy",
+  "message.buildinggadgetrefinedstorage.connected": "Bridge connected",
+  "message.buildinggadgetrefinedstorage.inactive": "Bridge inactive",
+  "message.buildinggadgetrefinedstorage.disconnected": "Bridge disconnected"
+}
+

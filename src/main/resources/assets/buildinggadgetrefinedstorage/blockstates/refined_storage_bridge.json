@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "active=false": {
+      "model": "buildinggadgetrefinedstorage:block/refined_storage_bridge_off"
+    },
+    "active=true": {
+      "model": "buildinggadgetrefinedstorage:block/refined_storage_bridge_on"
+    }
+  }
+}
+
