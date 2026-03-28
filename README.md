@@ -10,6 +10,22 @@ NeoForge `1.21.1` 向けの Kotlin 製 mod です。`refined_storage_bridge` ブ
 
 `runClient` には Building Gadgets 2 `1.3.9` と Refined Storage 2 `2.0.1` を runtime 依存として含めています。
 
+## ビルド
+
+```bash
+./gradlew build
+```
+
+成功すると `build/libs/` に jar が生成されます。
+
+```
+build/libs/
+├── refined_storage_bridge-<version>.jar        # 本体（Modsフォルダに入れるもの）
+└── refined_storage_bridge-<version>-sources.jar
+```
+
+`refined_storage_bridge-<version>.jar` を Minecraft の `mods/` フォルダに入れて使います。
+
 ## 対応範囲
 
 - アイテム
