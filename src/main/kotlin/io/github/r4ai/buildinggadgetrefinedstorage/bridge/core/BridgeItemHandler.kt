@@ -6,11 +6,10 @@ import net.neoforged.neoforge.items.IItemHandler
 
 class BridgeItemHandler(
     private val backend: BridgeBackend,
-    private val gameTimeProvider: () -> Long,
     private val bridgePositionProvider: () -> GlobalPos?,
     private val fluidProxyStackFactory: (FluidProxyRef) -> ItemStack,
 ) : IItemHandler {
-    private var cachedGameTime: Long = Long.MIN_VALUE
+    private var cachedVersion: Long = Long.MIN_VALUE
     private var cachedLayout: SlotLayout = SlotLayout.EMPTY
 
     override fun getSlots(): Int = currentLayout().size
@@ -18,7 +17,7 @@ class BridgeItemHandler(
     override fun getStackInSlot(slot: Int): ItemStack {
         val projected = currentLayout()[slot] ?: return ItemStack.EMPTY
         return when (projected) {
-            is ItemResourceProjectedSlot -> projected.displayStack.copy()
+            is ItemResourceProjectedSlot -> projected.displayStack
             is FluidResourceProjectedSlot -> fluidProxyStackFactory(projected.proxyRef)
             is ItemInputProjectedSlot -> ItemStack.EMPTY
             is FluidInputProjectedSlot -> fluidProxyStackFactory(projected.proxyRef)
@@ -77,12 +76,12 @@ class BridgeItemHandler(
     private fun currentLayout(): SlotLayout {
         if (!backend.isActive()) {
             cachedLayout = SlotLayout.EMPTY
-            cachedGameTime = Long.MIN_VALUE
+            cachedVersion = Long.MIN_VALUE
             return SlotLayout.EMPTY
         }
-        val currentTime = gameTimeProvider()
-        if (currentTime != cachedGameTime) {
-            cachedGameTime = currentTime
+        val currentVersion = backend.stateVersion()
+        if (currentVersion != cachedVersion) {
+            cachedVersion = currentVersion
             cachedLayout = bridgePositionProvider()?.let { position ->
                 ProjectionBuilder.build(backend.snapshot(), position)
             } ?: SlotLayout.EMPTY
@@ -90,4 +89,3 @@ class BridgeItemHandler(
         return cachedLayout
     }
 }
-

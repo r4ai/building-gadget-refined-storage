@@ -1,6 +1,9 @@
 package io.github.r4ai.buildinggadgetrefinedstorage.bridge.platform
 
 import com.refinedmods.refinedstorage.api.core.Action
+import com.refinedmods.refinedstorage.api.resource.ResourceAmount
+import com.refinedmods.refinedstorage.api.resource.list.MutableResourceList
+import com.refinedmods.refinedstorage.api.storage.root.RootStorageListener
 import com.refinedmods.refinedstorage.api.resource.ResourceKey as RsResourceKey
 import com.refinedmods.refinedstorage.api.storage.Actor
 import com.refinedmods.refinedstorage.api.network.storage.StorageNetworkComponent
@@ -12,10 +15,44 @@ import io.github.r4ai.buildinggadgetrefinedstorage.bridge.core.copyWithCountSafe
 import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.fluids.FluidStack
 
-class RefinedStorageBridgeBackend(
-    private val blockEntity: RefinedStorageBridgeBlockEntity,
+class RefinedStorageBridgeBackend internal constructor(
+    private val activeProvider: () -> Boolean,
+    private val storageBindingProvider: () -> StorageBinding?,
+    private val itemResourceKeyProvider: (ItemStack) -> RsResourceKey?,
 ) : BridgeBackend {
-    override fun isActive(): Boolean = blockEntity.isOperational
+    constructor(
+        blockEntity: RefinedStorageBridgeBlockEntity,
+    ) : this(
+        activeProvider = { blockEntity.isOperational },
+        storageBindingProvider = {
+            blockEntity.network
+                ?.getComponent(StorageNetworkComponent::class.java)
+                ?.let { storage -> StorageBinding(storage, StorageNetworkComponentAccess(storage)) }
+        },
+        itemResourceKeyProvider = { stack ->
+            RefinedStorageApi.INSTANCE
+                .getItemResourceFactory()
+                .create(stack.copyWithCountSafe(1))
+                .orElse(null)
+                ?.resource
+        },
+    )
+
+    private var stateVersion: Long = 0L
+    private var attachedStorageIdentity: Any? = null
+    private var attachedStorage: BridgeStorageAccess? = null
+    private val storageListener = object : RootStorageListener {
+        override fun changed(result: MutableResourceList.OperationResult) {
+            stateVersion += 1
+        }
+    }
+
+    override fun isActive(): Boolean = activeProvider()
+
+    override fun stateVersion(): Long {
+        syncStorageBinding()
+        return stateVersion
+    }
 
     override fun snapshot(): BridgeSnapshot {
         if (!isActive()) {
@@ -25,8 +62,8 @@ class RefinedStorageBridgeBackend(
         val itemSnapshots = mutableListOf<io.github.r4ai.buildinggadgetrefinedstorage.bridge.core.ItemResourceSnapshot>()
         val fluidSnapshots = mutableListOf<io.github.r4ai.buildinggadgetrefinedstorage.bridge.core.FluidResourceSnapshot>()
         storage.all.forEach { resourceAmount ->
-            RefinedStorageReflectionAdapter.toItemSnapshot(resourceAmount.resource, resourceAmount.amount)?.let(itemSnapshots::add)
-            RefinedStorageReflectionAdapter.toFluidSnapshot(resourceAmount.resource, resourceAmount.amount)?.let(fluidSnapshots::add)
+            RefinedStorageReflectionAdapter.toItemSnapshot(resourceAmount.resource(), resourceAmount.amount())?.let(itemSnapshots::add)
+            RefinedStorageReflectionAdapter.toFluidSnapshot(resourceAmount.resource(), resourceAmount.amount())?.let(fluidSnapshots::add)
         }
         return BridgeSnapshot(itemSnapshots, fluidSnapshots)
     }
@@ -78,17 +115,66 @@ class RefinedStorageBridgeBackend(
             .toInt()
     }
 
-    private fun storage(): StorageNetworkComponent? = blockEntity.network
-        ?.getComponent(StorageNetworkComponent::class.java)
+    private fun storage(): BridgeStorageAccess? {
+        syncStorageBinding()
+        return attachedStorage
+    }
 
-    private fun itemResourceKey(stack: ItemStack): RsResourceKey? = RefinedStorageApi.INSTANCE
-        .getItemResourceFactory()
-        .create(stack.copyWithCountSafe(1))
-        .orElse(null)
-        ?.resource
+    private fun syncStorageBinding() {
+        val binding = storageBindingProvider()
+        if (binding?.identity === attachedStorageIdentity) {
+            return
+        }
+        attachedStorage?.removeListener(storageListener)
+        attachedStorageIdentity = binding?.identity
+        attachedStorage = binding?.storage
+        attachedStorage?.addListener(storageListener)
+        stateVersion += 1
+    }
+
+    private fun itemResourceKey(stack: ItemStack): RsResourceKey? =
+        itemResourceKeyProvider(stack)
 
     private fun action(simulate: Boolean): Action = if (simulate) Action.SIMULATE else Action.EXECUTE
 
+    internal data class StorageBinding(
+        val identity: Any,
+        val storage: BridgeStorageAccess,
+    )
+
+    internal interface BridgeStorageAccess {
+        val all: Collection<ResourceAmount>
+
+        fun extract(resource: RsResourceKey, amount: Long, action: Action, actor: Actor): Long
+
+        fun insert(resource: RsResourceKey, amount: Long, action: Action, actor: Actor): Long
+
+        fun addListener(listener: RootStorageListener)
+
+        fun removeListener(listener: RootStorageListener)
+    }
+
+    private class StorageNetworkComponentAccess(
+        private val delegate: StorageNetworkComponent,
+    ) : BridgeStorageAccess {
+        override val all: Collection<ResourceAmount>
+            get() = delegate.all
+
+        override fun extract(resource: RsResourceKey, amount: Long, action: Action, actor: Actor): Long =
+            delegate.extract(resource, amount, action, actor)
+
+        override fun insert(resource: RsResourceKey, amount: Long, action: Action, actor: Actor): Long =
+            delegate.insert(resource, amount, action, actor)
+
+        override fun addListener(listener: RootStorageListener) {
+            delegate.addListener(listener)
+        }
+
+        override fun removeListener(listener: RootStorageListener) {
+            delegate.removeListener(listener)
+        }
+    }
+ 
     companion object {
         private val BRIDGE_ACTOR: Actor = Actor { "Building Gadget Refined Storage Bridge" }
     }

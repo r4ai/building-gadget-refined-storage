@@ -30,22 +30,26 @@ data class FluidInputProjectedSlot(
     override val stableKey: String = "\u0000fluid_input"
 }
 
-data class SlotLayout(
-    val slots: List<ProjectedSlot>,
+class SlotLayout private constructor(
+    private val entries: Array<ProjectedSlot>,
 ) {
+    constructor(slots: List<ProjectedSlot>) : this(slots.toTypedArray())
+
+    val slots: List<ProjectedSlot>
+        get() = entries.asList()
+
     val size: Int
-        get() = slots.size
+        get() = entries.size
 
     val itemInputIndex: Int
-        get() = slots.indexOfFirst { it is ItemInputProjectedSlot }
+        get() = entries.indexOfFirst { it is ItemInputProjectedSlot }
 
     val fluidInputIndex: Int
-        get() = slots.indexOfFirst { it is FluidInputProjectedSlot }
+        get() = entries.indexOfFirst { it is FluidInputProjectedSlot }
 
-    operator fun get(index: Int): ProjectedSlot? = slots.getOrNull(index)
+    operator fun get(index: Int): ProjectedSlot? = entries.getOrNull(index)
 
     companion object {
-        val EMPTY: SlotLayout = SlotLayout(emptyList())
+        val EMPTY: SlotLayout = SlotLayout(emptyArray())
     }
 }
-

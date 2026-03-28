@@ -29,9 +29,9 @@ object BenchmarkStats {
         }
 
         fun assertP99Below(thresholdMs: Long) {
-            val p99Ms = p99Ns / 1_000_000L
-            check(p99Ms <= thresholdMs) {
-                "[$label] p99 ${p99Ms}ms exceeded threshold ${thresholdMs}ms"
+            val thresholdNs = thresholdMs * 1_000_000L
+            check(p99Ns <= thresholdNs) {
+                "[$label] p99 ${formatNs(p99Ns)} exceeded threshold ${thresholdMs}ms"
             }
         }
 

@@ -23,7 +23,6 @@ class RefinedStorageBridgeBlockEntity(
     val backend = RefinedStorageBridgeBackend(this)
     val itemHandler = BridgeItemHandler(
         backend = backend,
-        gameTimeProvider = { level?.gameTime ?: 0L },
         bridgePositionProvider = {
             val currentLevel = level ?: return@BridgeItemHandler null
             GlobalPos.of(currentLevel.dimension(), blockPos)

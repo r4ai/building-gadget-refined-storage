@@ -86,27 +86,24 @@ class BridgeItemHandlerTest {
         val backend = InMemoryBridgeBackend(
             initialItems = listOf(ItemResourceSnapshot("stone", stone, 5)),
         )
-        var gameTime = 0L
         val handler = BridgeItemHandler(
             backend = backend,
-            gameTimeProvider = { gameTime },
             bridgePositionProvider = { position },
             fluidProxyStackFactory = { ItemStack(Items.BUCKET) },
         )
 
         assertEquals(3, handler.slots)
-        backend.insertItem(dirt.copyWithCountSafe(1), simulate = false)
+        assertEquals(3, handler.slots)
 
         assertEquals(3, handler.slots)
 
-        gameTime += 1
+        backend.insertItem(dirt.copyWithCountSafe(1), simulate = false)
 
         assertEquals(4, handler.slots)
     }
 
     private fun handler(backend: BridgeBackend): BridgeItemHandler = BridgeItemHandler(
         backend = backend,
-        gameTimeProvider = { 0L },
         bridgePositionProvider = { position },
         fluidProxyStackFactory = { ItemStack(Items.BUCKET) },
     )

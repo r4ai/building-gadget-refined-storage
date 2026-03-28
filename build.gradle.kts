@@ -150,6 +150,9 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    providers.systemProperty("benchmark.fail.threshold.ms").orNull?.let {
+        systemProperty("benchmark.fail.threshold.ms", it)
+    }
     testLogging {
         events("failed", "skipped")
         exceptionFormat = TestExceptionFormat.FULL

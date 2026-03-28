@@ -6,6 +6,8 @@ import net.neoforged.neoforge.fluids.FluidStack
 interface BridgeBackend {
     fun isActive(): Boolean
 
+    fun stateVersion(): Long
+
     fun snapshot(): BridgeSnapshot
 
     fun extractItem(prototype: ItemStack, amount: Int, simulate: Boolean): ItemStack
@@ -16,4 +18,3 @@ interface BridgeBackend {
 
     fun insertFluid(stack: FluidStack, simulate: Boolean): Int
 }
-

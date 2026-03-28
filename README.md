@@ -40,16 +40,16 @@ NeoForge `1.21.1` 向けの Kotlin 製 mod です。`refined_storage_bridge` ブ
 ### 実行
 
 ```bash
-./gradlew test --tests "*.BridgePerformanceBenchmark"
+./gradlew test --rerun-tasks --tests "*.BridgePerformanceBenchmark"
 ```
 
 ### 計測シナリオ
 
 | シナリオ | 内容 |
 |---|---|
-| **Scenario 1** キャッシュミス | ティックごとにレイアウトを再構築する（`ProjectionBuilder.build()` を毎回呼ぶ）。O(N log N) の主要ホットパス。 |
+| **Scenario 1** 強制再構築 | backend revision を毎回進め、内容変更直後の cold-path を測る。 |
 | **Scenario 2** キャッシュヒット | ティックが変わらない場合。キャッシュ済みレイアウトを返すだけなので N に依存しない定数時間。 |
-| **Scenario 3** フルティックシミュレーション | レイアウト再構築 + 全スロットへの `getStackInSlot()` 呼び出し。Building Gadgets が実際に行う操作パターンに近い。 |
+| **Scenario 3** フルティックシミュレーション | 変更のない steady-state で、キャッシュ済みレイアウトに対する全スロットへの `getStackInSlot()` 呼び出し。正式 KPI。 |
 | **Scenario 4** `ProjectionBuilder.build()` 単体 | ハンドラのオーバーヘッドを除いたビルドコスト。 |
 
 各シナリオをアイテム種類数 10 / 100 / 1000 / 5000 で実行し、統計値を表示します。
@@ -71,15 +71,15 @@ NeoForge `1.21.1` 向けの Kotlin 製 mod です。`refined_storage_bridge` ブ
 
 ### パフォーマンス目標
 
-サーバーの 1 ティック予算は 50ms。bridge 1 個が占める上限の目安は **p99 < 1ms**。
+サーバーの 1 ティック予算は 50ms。正式な合格条件は **Scenario 3 / N=5000 の p99 < 1ms**。
 
 ### 閾値付き実行（CI 等での回帰検知）
 
 ```bash
-./gradlew test --tests "*.BridgePerformanceBenchmark" -Dbenchmark.fail.threshold.ms=1
+./gradlew test --rerun-tasks --tests "*.BridgePerformanceBenchmark" -Dbenchmark.fail.threshold.ms=1
 ```
 
-`-Dbenchmark.fail.threshold.ms` を指定すると、p99 がその値（ミリ秒）を超えたときにテストを失敗させます。省略時はタイミングを出力するだけで常に成功します。
+`-Dbenchmark.fail.threshold.ms` を指定すると、Scenario 3 / `N=5000` の p99 がその値（ミリ秒）を超えたときにテストを失敗させます。省略時はタイミングを出力するだけで常に成功します。
 
 ### 出力例
 

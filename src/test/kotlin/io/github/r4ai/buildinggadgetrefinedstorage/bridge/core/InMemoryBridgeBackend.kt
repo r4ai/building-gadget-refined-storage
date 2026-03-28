@@ -24,6 +24,7 @@ class InMemoryBridgeBackend(
 
     private val items: MutableMap<String, ItemState> = linkedMapOf()
     private val fluids: MutableMap<String, FluidState> = linkedMapOf()
+    private var revision: Long = 0L
 
     init {
         initialItems.forEach { items[it.stableKey] = ItemState(it.stableKey, it.prototype.copyWithCountSafe(1), it.amount) }
@@ -31,6 +32,8 @@ class InMemoryBridgeBackend(
     }
 
     override fun isActive(): Boolean = active
+
+    override fun stateVersion(): Long = revision
 
     override fun snapshot(): BridgeSnapshot = BridgeSnapshot(
         itemResources = items.values.map { ItemResourceSnapshot(it.stableKey, it.prototype.copyWithCountSafe(1), it.amount) },
@@ -51,6 +54,7 @@ class InMemoryBridgeBackend(
             if (state.amount <= 0L) {
                 items.remove(state.stableKey)
             }
+            revision += 1
         }
         return state.prototype.copyWithCountSafe(extracted)
     }
@@ -66,6 +70,7 @@ class InMemoryBridgeBackend(
                 ItemState(key, stack.copyWithCountSafe(1), 0)
             }
             state.amount += stack.count.toLong()
+            revision += 1
         }
         return ItemStack.EMPTY
     }
@@ -84,6 +89,7 @@ class InMemoryBridgeBackend(
             if (state.amount <= 0L) {
                 fluids.remove(state.stableKey)
             }
+            revision += 1
         }
         return descriptor.toFluidStack(extracted)
     }
@@ -97,8 +103,12 @@ class InMemoryBridgeBackend(
         if (!simulate) {
             val state = fluids.getOrPut(key) { FluidState(key, descriptor, 0L) }
             state.amount += stack.amount.toLong()
+            revision += 1
         }
         return stack.amount
     }
-}
 
+    fun bumpStateVersion() {
+        revision += 1
+    }
+}
