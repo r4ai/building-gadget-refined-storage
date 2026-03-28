@@ -8,9 +8,12 @@ class BridgeItemHandler(
     private val backend: BridgeBackend,
     private val bridgePositionProvider: () -> GlobalPos?,
     private val fluidProxyStackFactory: (FluidProxyRef) -> ItemStack,
+    private val currentTickProvider: () -> Long = { 0L },
+    private val rebuildIntervalTicks: Long = DEFAULT_REBUILD_INTERVAL_TICKS,
 ) : IItemHandler {
     private var cachedVersion: Long = Long.MIN_VALUE
     private var cachedLayout: SlotLayout = SlotLayout.EMPTY
+    private var nextRebuildTick: Long = Long.MIN_VALUE
 
     override fun getSlots(): Int = currentLayout().size
 
@@ -77,15 +80,25 @@ class BridgeItemHandler(
         if (!backend.isActive()) {
             cachedLayout = SlotLayout.EMPTY
             cachedVersion = Long.MIN_VALUE
+            nextRebuildTick = Long.MIN_VALUE
             return SlotLayout.EMPTY
         }
         val currentVersion = backend.stateVersion()
         if (currentVersion != cachedVersion) {
+            val currentTick = currentTickProvider()
+            if (cachedVersion != Long.MIN_VALUE && currentTick < nextRebuildTick) {
+                return cachedLayout
+            }
             cachedVersion = currentVersion
             cachedLayout = bridgePositionProvider()?.let { position ->
                 ProjectionBuilder.build(backend.snapshot(), position)
             } ?: SlotLayout.EMPTY
+            nextRebuildTick = currentTick + rebuildIntervalTicks.coerceAtLeast(0L)
         }
         return cachedLayout
+    }
+
+    companion object {
+        const val DEFAULT_REBUILD_INTERVAL_TICKS: Long = 20L
     }
 }

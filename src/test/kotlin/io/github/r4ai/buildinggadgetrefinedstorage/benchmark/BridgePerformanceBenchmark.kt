@@ -39,6 +39,7 @@ class BridgePerformanceBenchmark {
                 backend = backend,
                 bridgePositionProvider = { position },
                 fluidProxyStackFactory = { ItemStack.EMPTY },
+                rebuildIntervalTicks = 0L,
             )
         }
 

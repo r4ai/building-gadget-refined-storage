@@ -18,6 +18,7 @@ class BridgeItemHandlerTest {
         ResourceLocation.withDefaultNamespace("overworld"),
     )
     private val position: GlobalPos = GlobalPos.of(levelKey, BlockPos(0, 80, 0))
+
     @Test
     fun `matching item extraction succeeds`() {
         MinecraftTestBootstrap.ensure()
@@ -79,10 +80,11 @@ class BridgeItemHandlerTest {
     }
 
     @Test
-    fun `layout stays stable within a tick and refreshes next tick`() {
+    fun `layout rebuild is deferred until debounce window elapses`() {
         MinecraftTestBootstrap.ensure()
         val stone = ItemStack(Items.STONE)
         val dirt = ItemStack(Items.DIRT)
+        var currentTick = 100L
         val backend = InMemoryBridgeBackend(
             initialItems = listOf(ItemResourceSnapshot("stone", stone, 5)),
         )
@@ -90,15 +92,21 @@ class BridgeItemHandlerTest {
             backend = backend,
             bridgePositionProvider = { position },
             fluidProxyStackFactory = { ItemStack(Items.BUCKET) },
+            currentTickProvider = { currentTick },
+            rebuildIntervalTicks = 20L,
         )
 
         assertEquals(3, handler.slots)
         assertEquals(3, handler.slots)
 
-        assertEquals(3, handler.slots)
-
         backend.insertItem(dirt.copyWithCountSafe(1), simulate = false)
 
+        assertEquals(3, handler.slots)
+
+        currentTick += 19
+        assertEquals(3, handler.slots)
+
+        currentTick += 1
         assertEquals(4, handler.slots)
     }
 
@@ -106,5 +114,6 @@ class BridgeItemHandlerTest {
         backend = backend,
         bridgePositionProvider = { position },
         fluidProxyStackFactory = { ItemStack(Items.BUCKET) },
+        rebuildIntervalTicks = 0L,
     )
 }

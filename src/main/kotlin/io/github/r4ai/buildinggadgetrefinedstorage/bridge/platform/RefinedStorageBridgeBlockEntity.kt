@@ -30,6 +30,7 @@ class RefinedStorageBridgeBlockEntity(
         fluidProxyStackFactory = { ref ->
             ModContent.FLUID_PROXY_ITEM.get().createStack(ref)
         },
+        currentTickProvider = { level?.gameTime ?: 0L },
     )
 
     var isOperational: Boolean = false
