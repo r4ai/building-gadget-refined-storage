@@ -17,13 +17,26 @@ $batchDir = Join-Path $functionsDir "batches"
 $waitDir = Join-Path $functionsDir "wait"
 $tagDir = Join-Path $packDir "data/minecraft/tags/function"
 $itemListPath = Join-Path $packDir "item_ids.txt"
+$gradlePropertiesPath = Join-Path $root "gradle.properties"
+
+if (-not (Test-Path $gradlePropertiesPath)) {
+    throw "gradle.properties not found at $gradlePropertiesPath"
+}
+
+$modVersion = Select-String -Path $gradlePropertiesPath -Pattern '^mod_version=(.+)$' |
+    Select-Object -First 1 |
+    ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() }
+
+if (-not $modVersion) {
+    throw "mod_version not found in $gradlePropertiesPath"
+}
 
 $jarPaths = @(
     "C:\Users\r4ai\.gradle\caches\neoformruntime\artifacts\minecraft_1.21.1_client.jar",
     "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\com.refinedmods.refinedstorage\refinedstorage-neoforge\2.0.1\9096e0109a55ab066675bd453663d114bdefc99a\refinedstorage-neoforge-2.0.1.jar",
     "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\curse.maven\mekanism-268560\7621971\2c48df86350bb733e4285437e136b271a70f4cbc\mekanism-268560-7621971.jar",
     "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\curse.maven\building-gadgets-2-298187\6850515\666a155981e3cd231f67809b9e2a0238377bbbfc\building-gadgets-2-298187-6850515.jar",
-    (Join-Path $root "build/libs/buildinggadgetrefinedstorage-0.1.0-SNAPSHOT.jar")
+    (Join-Path $root "build/libs/buildinggadgetrefinedstorage-$modVersion.jar")
 ) | Where-Object { Test-Path $_ }
 
 if (-not $jarPaths) {
