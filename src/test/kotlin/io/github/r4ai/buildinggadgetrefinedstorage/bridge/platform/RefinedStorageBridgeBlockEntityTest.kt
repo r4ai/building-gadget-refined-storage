@@ -39,4 +39,31 @@ class RefinedStorageBridgeBlockEntityTest {
             ),
         )
     }
+
+    @Test
+    fun `active state update runs when persisted lamp state differs from operational state`() {
+        assertTrue(
+            RefinedStorageBridgeBlockEntity.shouldUpdateActiveState(
+                cachedOperational = false,
+                blockActive = true,
+                newOperational = false,
+            ),
+        )
+
+        assertTrue(
+            RefinedStorageBridgeBlockEntity.shouldUpdateActiveState(
+                cachedOperational = false,
+                blockActive = false,
+                newOperational = true,
+            ),
+        )
+
+        assertFalse(
+            RefinedStorageBridgeBlockEntity.shouldUpdateActiveState(
+                cachedOperational = false,
+                blockActive = false,
+                newOperational = false,
+            ),
+        )
+    }
 }

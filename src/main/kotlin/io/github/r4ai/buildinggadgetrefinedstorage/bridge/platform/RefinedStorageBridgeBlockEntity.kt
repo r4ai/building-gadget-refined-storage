@@ -69,7 +69,12 @@ class RefinedStorageBridgeBlockEntity(
         }
 
         mainNetworkNode.setActive(newOperational)
-        if (newOperational != isOperational) {
+        if (shouldUpdateActiveState(
+                cachedOperational = isOperational,
+                blockActive = currentState.getValue(RefinedStorageBridgeBlock.ACTIVE),
+                newOperational = newOperational,
+            )
+        ) {
             isOperational = newOperational
             updateActiveBlockState(level, currentState, newOperational)
         }
@@ -92,6 +97,12 @@ class RefinedStorageBridgeBlockEntity(
             hasSameBlockEntity: Boolean,
             hasBridgeBlock: Boolean,
         ): Boolean = !isRemoved && hasSameBlockEntity && hasBridgeBlock
+
+        internal fun shouldUpdateActiveState(
+            cachedOperational: Boolean,
+            blockActive: Boolean,
+            newOperational: Boolean,
+        ): Boolean = cachedOperational != newOperational || blockActive != newOperational
 
         private fun shouldReflectActiveState(
             isRemoved: Boolean,
