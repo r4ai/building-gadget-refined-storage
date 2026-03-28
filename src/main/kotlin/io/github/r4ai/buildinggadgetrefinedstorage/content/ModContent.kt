@@ -8,7 +8,9 @@ import io.github.r4ai.buildinggadgetrefinedstorage.bridge.platform.RefinedStorag
 import java.util.function.Supplier
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
+import net.minecraft.network.chat.Component
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
@@ -25,6 +27,8 @@ object ModContent {
         DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BuildingGadgetRefinedStorageMod.MOD_ID)
     val DATA_COMPONENTS: DeferredRegister<DataComponentType<*>> =
         DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, BuildingGadgetRefinedStorageMod.MOD_ID)
+    val CREATIVE_MODE_TABS: DeferredRegister<CreativeModeTab> =
+        DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BuildingGadgetRefinedStorageMod.MOD_ID)
 
     val REFINED_STORAGE_BRIDGE_BLOCK = BLOCKS.register("refined_storage_bridge", Supplier {
         RefinedStorageBridgeBlock(
@@ -50,6 +54,17 @@ object ModContent {
         },
     )
 
+    val MOD_CREATIVE_TAB = CREATIVE_MODE_TABS.register("main", Supplier {
+        CreativeModeTab.builder()
+            .icon { ItemStack(REFINED_STORAGE_BRIDGE_ITEM.get()) }
+            .title(Component.translatable("itemGroup.${BuildingGadgetRefinedStorageMod.MOD_ID}"))
+            .displayItems { _, output ->
+                output.accept(REFINED_STORAGE_BRIDGE_ITEM.get())
+                output.accept(FLUID_PROXY_ITEM.get())
+            }
+            .build()
+    })
+
     val FLUID_PROXY_REF_COMPONENT = DATA_COMPONENTS.register("fluid_proxy_ref", Supplier {
         DataComponentType.builder<FluidProxyRef>()
             .persistent(FluidProxyRef.CODEC)
@@ -62,6 +77,7 @@ object ModContent {
         ITEMS.register(eventBus)
         BLOCK_ENTITY_TYPES.register(eventBus)
         DATA_COMPONENTS.register(eventBus)
+        CREATIVE_MODE_TABS.register(eventBus)
     }
 
     fun fluidProxyRef(stack: ItemStack): FluidProxyRef? = stack.get(FLUID_PROXY_REF_COMPONENT.get())

@@ -1,11 +1,9 @@
 package io.github.r4ai.buildinggadgetrefinedstorage
 
 import io.github.r4ai.buildinggadgetrefinedstorage.content.ModContent
-import net.minecraft.world.item.CreativeModeTabs
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import com.refinedmods.refinedstorage.neoforge.api.RefinedStorageNeoForgeApi
 
@@ -14,7 +12,6 @@ class BuildingGadgetRefinedStorageMod {
     init {
         ModContent.register(MOD_BUS)
         MOD_BUS.addListener(::registerCapabilities)
-        MOD_BUS.addListener(::buildCreativeTabContents)
     }
 
     companion object {
@@ -40,10 +37,5 @@ class BuildingGadgetRefinedStorageMod {
         )
     }
 
-    private fun buildCreativeTabContents(event: BuildCreativeModeTabContentsEvent) {
-        when (event.tabKey) {
-            CreativeModeTabs.FUNCTIONAL_BLOCKS -> event.accept(ModContent.REFINED_STORAGE_BRIDGE_ITEM.get())
-            CreativeModeTabs.TOOLS_AND_UTILITIES -> event.accept(ModContent.FLUID_PROXY_ITEM.get())
-        }
-    }
+
 }

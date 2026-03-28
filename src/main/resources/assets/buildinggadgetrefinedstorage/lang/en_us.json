@@ -1,4 +1,5 @@
 {
+  "itemGroup.buildinggadgetrefinedstorage": "Building Gadget Refined Storage Bridge",
   "block.buildinggadgetrefinedstorage.refined_storage_bridge": "Refined Storage Bridge",
   "item.buildinggadgetrefinedstorage.fluid_proxy": "Fluid Proxy",
   "message.buildinggadgetrefinedstorage.connected": "Bridge connected",
