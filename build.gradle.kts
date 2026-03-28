@@ -153,6 +153,7 @@ tasks.withType<Test>().configureEach {
     testLogging {
         events("failed", "skipped")
         exceptionFormat = TestExceptionFormat.FULL
+        showStandardStreams = true
     }
 }
 

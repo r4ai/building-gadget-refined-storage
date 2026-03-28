@@ -33,6 +33,68 @@ NeoForge `1.21.1` 向けの Kotlin 製 mod です。`refined_storage_bridge` ブ
 5. 水または溶岩の source を使い、設置と回収が RS ネットワークへ反映されることを確認する。
 6. cable を切るか電力を止め、bridge が fail-closed で動作することを確認する。
 
+## パフォーマンス計測
+
+`BridgeItemHandler` のスロットレイアウト構築コストを、アイテム種類数を変えながら定量的に計測できます。
+
+### 実行
+
+```bash
+./gradlew test --tests "*.BridgePerformanceBenchmark"
+```
+
+### 計測シナリオ
+
+| シナリオ | 内容 |
+|---|---|
+| **Scenario 1** キャッシュミス | ティックごとにレイアウトを再構築する（`ProjectionBuilder.build()` を毎回呼ぶ）。O(N log N) の主要ホットパス。 |
+| **Scenario 2** キャッシュヒット | ティックが変わらない場合。キャッシュ済みレイアウトを返すだけなので N に依存しない定数時間。 |
+| **Scenario 3** フルティックシミュレーション | レイアウト再構築 + 全スロットへの `getStackInSlot()` 呼び出し。Building Gadgets が実際に行う操作パターンに近い。 |
+| **Scenario 4** `ProjectionBuilder.build()` 単体 | ハンドラのオーバーヘッドを除いたビルドコスト。 |
+
+各シナリオをアイテム種類数 10 / 100 / 1000 / 5000 で実行し、統計値を表示します。
+
+### 出力列の意味
+
+| 列 | 意味 |
+|---|---|
+| `(N=…)` | テストに使ったアイテムの **種類数**。Refined Storage ネットワークに何種類格納されているかを模擬する。 |
+| `n=…` | **サンプル数**（ウォームアップ後に実際に計測した回数）。 |
+| `min` | 計測した中で最も速かった1回の時間。JIT が最もうまく働いた状態の下限。 |
+| `mean` | 全サンプルの平均時間。外れ値の影響を受けやすい。 |
+| `p50` | **中央値**。サンプルの 50% がこの値以下。典型的なスループットを表す。 |
+| `p95` | サンプルの 95% がこの値以下。負荷が高めのときの代表値。 |
+| `p99` | サンプルの 99% がこの値以下。**「ほぼ最悪に近いケース」**。閾値チェックにはこの値を使う。 |
+| `max` | 計測した中で最も遅かった1回。GC ポーズなど偶発的な外れ値が出やすい。 |
+
+時間の単位は `ns`（ナノ秒）・`us`（マイクロ秒）・`ms`（ミリ秒）で自動切り替えされます。
+
+### パフォーマンス目標
+
+サーバーの 1 ティック予算は 50ms。bridge 1 個が占める上限の目安は **p99 < 1ms**。
+
+### 閾値付き実行（CI 等での回帰検知）
+
+```bash
+./gradlew test --tests "*.BridgePerformanceBenchmark" -Dbenchmark.fail.threshold.ms=1
+```
+
+`-Dbenchmark.fail.threshold.ms` を指定すると、p99 がその値（ミリ秒）を超えたときにテストを失敗させます。省略時はタイミングを出力するだけで常に成功します。
+
+### 出力例
+
+```
+=== Scenario 1: Cache Miss (layout rebuild per tick) ===
+  cache-miss getSlots (N=10)     n=500  min=1.10us   mean=2.05us   p50=1.80us   p95=2.70us   p99=9.90us   max=65.60us
+  cache-miss getSlots (N=100)    n=500  min=5.00us   mean=9.25us   p50=8.50us   p95=12.30us  p99=32.80us  max=100.40us
+  cache-miss getSlots (N=1000)   n=500  min=44.20us  mean=96.47us  p50=73.60us  p95=254.40us p99=332.10us max=2.36ms
+  cache-miss getSlots (N=5000)   n=200  min=207.30us mean=537.09us p50=463.20us p95=815.40us p99=3.18ms   max=5.01ms
+
+=== Scenario 2: Cache Hit (cached layout returned) ===
+  cache-hit  getSlots (N=10)     n=500  min=100ns    mean=232ns    p50=200ns    p95=200ns    p99=2.60us   max=9.40us
+  cache-hit  getSlots (N=5000)   n=500  min=0ns      mean=53ns     p50=0ns      p95=100ns    p99=200ns    max=2.20us
+```
+
 ## テクスチャ配置
 
 - ブロックのテクスチャは `src/main/resources/assets/buildinggadgetrefinedstorage/textures/block/` に置く
