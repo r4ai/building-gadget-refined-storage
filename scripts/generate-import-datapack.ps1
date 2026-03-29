@@ -23,21 +23,92 @@ if (-not (Test-Path $gradlePropertiesPath)) {
     throw "gradle.properties not found at $gradlePropertiesPath"
 }
 
-$modVersion = Select-String -Path $gradlePropertiesPath -Pattern '^mod_version=(.+)$' |
-    Select-Object -First 1 |
-    ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() }
+function Get-GradleProperty {
+    param([string]$Name)
+
+    $match = Select-String -Path $gradlePropertiesPath -Pattern "^$([Regex]::Escape($Name))=(.+)$" |
+        Select-Object -First 1
+
+    if (-not $match) {
+        throw "$Name not found in $gradlePropertiesPath"
+    }
+
+    return $match.Matches[0].Groups[1].Value.Trim()
+}
+
+$modVersion = Get-GradleProperty "mod_version"
+$minecraftVersion = Get-GradleProperty "minecraft_version"
+$rsVersion = Get-GradleProperty "rs_version"
+$bg2ProjectId = Get-GradleProperty "bg2_project_id"
+$bg2FileId = Get-GradleProperty "bg2_file_id"
+$mekanismProjectId = Get-GradleProperty "mekanism_project_id"
+$mekanismFileId = Get-GradleProperty "mekanism_file_id"
 
 if (-not $modVersion) {
     throw "mod_version not found in $gradlePropertiesPath"
 }
 
+function Get-GradleUserHome {
+    if ($env:GRADLE_USER_HOME) {
+        return $env:GRADLE_USER_HOME
+    }
+
+    if ($HOME) {
+        return Join-Path $HOME ".gradle"
+    }
+
+    throw "Unable to determine Gradle user home. Set GRADLE_USER_HOME or HOME."
+}
+
+function Resolve-GradleJarPath {
+    param(
+        [string]$SearchRoot,
+        [string]$JarFileName
+    )
+
+    if (-not (Test-Path $SearchRoot)) {
+        return $null
+    }
+
+    return Get-ChildItem -Path $SearchRoot -Filter $JarFileName -File -Recurse -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty FullName -First 1
+}
+
+function Get-JsonPropertyNames {
+    param($JsonObject)
+
+    if ($null -eq $JsonObject) {
+        return @()
+    }
+
+    if ($JsonObject -is [System.Collections.IDictionary]) {
+        return @($JsonObject.Keys)
+    }
+
+    if ($JsonObject.PSObject -and $JsonObject.PSObject.Properties) {
+        return @($JsonObject.PSObject.Properties | Select-Object -ExpandProperty Name)
+    }
+
+    return @()
+}
+
+$gradleUserHome = Get-GradleUserHome
+$gradleCachesDir = Join-Path $gradleUserHome "caches"
+$moduleCacheDir = Join-Path $gradleCachesDir "modules-2/files-2.1"
+
 $jarPaths = @(
-    "C:\Users\r4ai\.gradle\caches\neoformruntime\artifacts\minecraft_1.21.1_client.jar",
-    "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\com.refinedmods.refinedstorage\refinedstorage-neoforge\2.0.1\9096e0109a55ab066675bd453663d114bdefc99a\refinedstorage-neoforge-2.0.1.jar",
-    "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\curse.maven\mekanism-268560\7621971\2c48df86350bb733e4285437e136b271a70f4cbc\mekanism-268560-7621971.jar",
-    "C:\Users\r4ai\.gradle\caches\modules-2\files-2.1\curse.maven\building-gadgets-2-298187\6850515\666a155981e3cd231f67809b9e2a0238377bbbfc\building-gadgets-2-298187-6850515.jar",
+    (Join-Path $gradleCachesDir "neoformruntime/artifacts/minecraft_${minecraftVersion}_client.jar"),
+    (Resolve-GradleJarPath `
+        -SearchRoot (Join-Path $moduleCacheDir "com.refinedmods.refinedstorage/refinedstorage-neoforge/$rsVersion") `
+        -JarFileName "refinedstorage-neoforge-$rsVersion.jar"),
+    (Resolve-GradleJarPath `
+        -SearchRoot (Join-Path $moduleCacheDir "curse.maven/mekanism-$mekanismProjectId/$mekanismFileId") `
+        -JarFileName "mekanism-$mekanismProjectId-$mekanismFileId.jar"),
+    (Resolve-GradleJarPath `
+        -SearchRoot (Join-Path $moduleCacheDir "curse.maven/building-gadgets-2-$bg2ProjectId/$bg2FileId") `
+        -JarFileName "building-gadgets-2-$bg2ProjectId-$bg2FileId.jar"),
     (Join-Path $root "build/libs/buildinggadgetrefinedstorage-$modVersion.jar")
-) | Where-Object { Test-Path $_ }
+) | Where-Object { $_ -and (Test-Path $_) }
 
 if (-not $jarPaths) {
     throw "No jars found to scan for item IDs."
@@ -80,12 +151,16 @@ function Get-ItemIdsFromJar {
             $namespace = $matches[1]
             $reader = New-Object System.IO.StreamReader($entry.Open())
             try {
-                $json = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable
+                try {
+                    $json = $reader.ReadToEnd() | ConvertFrom-Json -ErrorAction Stop
+                } catch {
+                    continue
+                }
             } finally {
                 $reader.Dispose()
             }
 
-            foreach ($key in $json.Keys) {
+            foreach ($key in Get-JsonPropertyNames $json) {
                 if ($key -match "^(?:item|block)\.$([Regex]::Escape($namespace))\.(.+)$") {
                     [void]$translatedIds.Add("${namespace}:$($matches[1])")
                 }
@@ -167,20 +242,20 @@ Set-Content -Path (Join-Path $tagDir "load.json") -Value $loadTag -Encoding UTF8
 
 $loadFunction = New-FunctionText @(
     "data modify storage seed5000:state active set value 0b",
-    "tellraw @a [{""text"":""[seed5000] /function seed5000:start で開始, /function seed5000:stop で停止"",""color"":""yellow""}]"
+    'tellraw @a [{"text":"[seed5000] /function seed5000:start で開始, /function seed5000:stop で停止","color":"yellow"}]'
 )
 Set-Content -Path (Join-Path $functionsDir "load.mcfunction") -Value $loadFunction -Encoding UTF8
 
 $startFunction = New-FunctionText @(
     "data modify storage seed5000:state active set value 1b",
-    "tellraw @a [{""text"":""[seed5000] start: chest 4 -60 -4 に順次投入を開始"",""color"":""green""}]",
+    'tellraw @a [{"text":"[seed5000] start: chest 4 -60 -4 に順次投入を開始","color":"green"}]',
     "schedule function seed5000:wait/0000 1t replace"
 )
 Set-Content -Path (Join-Path $functionsDir "start.mcfunction") -Value $startFunction -Encoding UTF8
 
 $stopFunction = New-FunctionText @(
     "data modify storage seed5000:state active set value 0b",
-    "tellraw @a [{""text"":""[seed5000] stop"",""color"":""red""}]"
+    'tellraw @a [{"text":"[seed5000] stop","color":"red"}]'
 )
 Set-Content -Path (Join-Path $functionsDir "stop.mcfunction") -Value $stopFunction -Encoding UTF8
 
@@ -191,7 +266,7 @@ for ($offset = 0; $offset -lt $selectedIds.Count; $offset += $BatchSize) {
 
 $finishFunction = New-FunctionText @(
     "data modify storage seed5000:state active set value 0b",
-    "tellraw @a [{""text"":""[seed5000] 完了: $($selectedIds.Count) 種類を投入対象にしました"",""color"":""aqua""}]"
+    "tellraw @a [{`"text`":`"[seed5000] 完了: $($selectedIds.Count) 種類を投入対象にしました`",`"color`":`"aqua`"}]"
 )
 Set-Content -Path (Join-Path $functionsDir "finish.mcfunction") -Value $finishFunction -Encoding UTF8
 
