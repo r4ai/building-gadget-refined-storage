@@ -1,125 +1,127 @@
 # Building Gadget Refined Storage Bridge
 
-NeoForge `1.21.1` 向けの Kotlin 製 mod です。
+> 日本語版は [README_ja.md](./README_ja.md) を参照してください。
 
-`refined_storage_bridge` ブロックを追加します。このブロックを Building Gadgets 2 の `bind to inventory` 先に指定することで、Building Gadget が Refined Storage 2 のネットワークに対してアイテム・流体を出し入れできるようになります。
+A Kotlin-based mod for NeoForge `1.21.1`.
 
-## 前提 Mod
+Adds the `refined_storage_bridge` block. By specifying this block as the `bind to inventory` target in Building Gadgets 2, the Building Gadget can insert and extract items and fluids from a Refined Storage 2 network.
+
+## Prerequisites
 
 - [Building Gadgets 2](https://www.curseforge.com/minecraft/mc-mods/building-gadgets-2) `1.3.9`
 - [Refined Storage 2](https://www.curseforge.com/minecraft/mc-mods/refined-storage) `2.0.1`
 
-## インストール
+## Installation
 
-1. `./gradlew build` を実行する。
-2. `build/libs/` に生成された jar を Minecraft の `mods/` フォルダに入れる。
+1. Run `./gradlew build`.
+2. Place the generated jar from `build/libs/` into the Minecraft `mods/` folder.
 
 ```
 build/libs/
-├── refined_storage_bridge-<version>.jar         ← mods/ に入れるもの
-└── refined_storage_bridge-<version>-sources.jar ← ソース（任意）
+├── refined_storage_bridge-<version>.jar         ← place this in mods/
+└── refined_storage_bridge-<version>-sources.jar ← sources (optional)
 ```
 
-## 使い方
+## Usage
 
-1. Refined Storage 2 のネットワークを構築し、`refined_storage_bridge` ブロックを cable に接続する。
-2. Building Gadget を持った状態で、bridge ブロックを右クリックして `bind to inventory` する。
-3. Gadget でブロックを設置・交換すると、アイテムが RS ネットワークから引き出される。
-4. 撤去したブロックは RS ネットワークに返却される。
+1. Build a Refined Storage 2 network and connect the `refined_storage_bridge` block to a cable.
+2. While holding a Building Gadget, right-click the bridge block to `bind to inventory`.
+3. When placing or exchanging blocks with the Gadget, items will be pulled from the RS network.
+4. Removed blocks are returned to the RS network.
 
-### ステータス確認
+### Checking Status
 
-素手で bridge ブロックを右クリックすると、現在の接続状態を確認できます。
+Right-clicking the bridge block with an empty hand shows the current connection state.
 
-| 表示   | 状態                                                 |
-| ------ | ---------------------------------------------------- |
-| 接続中 | RS ネットワークに正常に接続されている                |
-| 非接続 | cable が切断されているか、ネットワークが見つからない |
-| 無効   | ネットワークの電力が不足している                     |
+| Display       | State                                                            |
+| ------------- | ---------------------------------------------------------------- |
+| Connected     | Successfully connected to the RS network                         |
+| Disconnected  | The cable is disconnected or no network was found                |
+| Inactive      | The network does not have enough power                           |
 
-電力が止まるか cable が切れると、bridge は即座に動作を停止します（fail-closed）。
+When power stops or the cable is cut, the bridge immediately halts operation (fail-closed).
 
-在庫表示のレイアウト再構築は、ネットワーク更新が連続しても最大で約 1 秒ごとにまとめて行われます。実際の入出力はその間も通常どおり処理されますが、GUI 上の種類数や表示順の反映には少し遅延が入ります。
+Inventory layout rebuilds are batched at most once per ~1 second, even during continuous network updates. Actual item insertion and extraction continue to work normally in the meantime, but there may be a slight delay before the item count and sort order are reflected in the GUI.
 
-## 制限事項
+## Limitations
 
-- GUI はありません。
-- Building Gadgets 2 との接続には `ItemHandler.BLOCK` のみを使用します（他のインタフェースは未対応）。
-- Refined Storage 2 とは公式 API を通じて接続します。ただし resource 名の表示変換にのみ runtime reflection を使用します。
-- owner 制限や RS のセキュリティ連携は実装していません。
+- No GUI.
+- Only `ItemHandler.BLOCK` is used for the connection with Building Gadgets 2 (other interfaces are not supported).
+- Connects to Refined Storage 2 via the official API. Runtime reflection is used only for display conversion of resource names.
+- Owner restrictions and RS security integration are not implemented.
 
 ---
 
-## 開発者向け
+## For Developers
 
-### 環境構築
+### Setting Up the Environment
 
-- Java 21 が必要です。
+- Java 21 is required.
 
 ```bash
-# テスト実行
+# Run tests
 ./gradlew test
 
-# クライアント起動（Building Gadgets 2 と RS 2 を同梱した開発環境）
+# Launch client (dev environment bundled with Building Gadgets 2 and RS 2)
 ./gradlew runClient
 ```
 
-### 動作確認手順
+### Verification Steps
 
-1. `./gradlew runClient` を実行する。
-2. Refined Storage 2 のネットワークを作り、`refined_storage_bridge` を cable に接続する。
-3. Building Gadget を bridge に `bind to inventory` する。
-4. `build` / `exchange` でアイテム消費と返却が RS ネットワークに反映されることを確認する。
-5. 水または溶岩の source を使い、設置・回収が RS ネットワークに反映されることを確認する。
-6. cable を切るか電力を止め、bridge が fail-closed で動作することを確認する。
+1. Run `./gradlew runClient`.
+2. Build a Refined Storage 2 network and connect `refined_storage_bridge` to a cable.
+3. `bind to inventory` the Building Gadget to the bridge.
+4. Confirm that item consumption and returns during `build` / `exchange` are reflected in the RS network.
+5. Use a water or lava source and confirm that placement and retrieval are reflected in the RS network.
+6. Cut the cable or stop the power and confirm that the bridge operates fail-closed.
 
-### パフォーマンス計測
+### Performance Benchmarking
 
-`BridgeItemHandler` のスロットレイアウト構築コストを、ネットワーク内のアイテム種類数を変えながら計測できます。
+You can measure the slot layout build cost of `BridgeItemHandler` while varying the number of item types in the network.
 
 ```bash
 ./gradlew test --rerun-tasks --tests "*.BridgePerformanceBenchmark"
 ```
 
-#### 計測シナリオ
+#### Benchmark Scenarios
 
-| シナリオ                                        | 内容                                                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Scenario 1** 強制再構築                       | backend revision を毎回進め、キャッシュなし（cold-path）のコストを測る。                    |
-| **Scenario 2** キャッシュヒット                 | ティックをまたがない場合。キャッシュ済みレイアウトを返すだけなので N に依存しない定数時間。 |
-| **Scenario 3** フルティックシミュレーション     | 変更のない steady-state で、全スロットに `getStackInSlot()` を呼び出す。**正式な KPI**。    |
-| **Scenario 4** `ProjectionBuilder.build()` 単体 | ハンドラのオーバーヘッドを除いた純粋なビルドコスト。                                        |
+| Scenario                                           | Description                                                                                                          |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Scenario 1** Forced Rebuild                      | Advances the backend revision every time, measuring the cost of the cold-path (no cache).                            |
+| **Scenario 2** Cache Hit                           | Does not cross a tick boundary. Returns the cached layout, so constant time regardless of N.                         |
+| **Scenario 3** Full Tick Simulation                | Steady-state with no changes, calling `getStackInSlot()` on every slot. **The official KPI.**                        |
+| **Scenario 4** `ProjectionBuilder.build()` alone   | Pure build cost excluding handler overhead.                                                                          |
 
-各シナリオをアイテム種類数 10 / 100 / 1000 / 5000 で実行し、統計値を表示します。
+Each scenario is run with 10 / 100 / 1000 / 5000 item types and statistics are displayed.
 
-#### 出力列の意味
+#### Output Column Descriptions
 
-| 列      | 意味                                                         |
-| ------- | ------------------------------------------------------------ |
-| `(N=…)` | ネットワーク内のアイテム種類数（模擬値）。                   |
-| `n=…`   | ウォームアップ後に実際に計測したサンプル数。                 |
-| `min`   | 最速の1回。JIT が最も効いた状態の下限。                      |
-| `mean`  | 全サンプルの平均。外れ値の影響を受けやすい。                 |
-| `p50`   | 中央値。典型的なスループットを表す。                         |
-| `p95`   | 負荷が高いときの代表値。                                     |
-| `p99`   | 「ほぼ最悪に近いケース」。**閾値チェックにはこの値を使う。** |
-| `max`   | 最遅の1回。GC ポーズなど偶発的な外れ値が出やすい。           |
+| Column  | Meaning                                                                       |
+| ------- | ----------------------------------------------------------------------------- |
+| `(N=…)` | Number of item types in the network (simulated).                              |
+| `n=…`   | Number of samples actually measured after warm-up.                            |
+| `min`   | Fastest single run. Lower bound when JIT is most effective.                   |
+| `mean`  | Average of all samples. Susceptible to outliers.                              |
+| `p50`   | Median. Represents typical throughput.                                        |
+| `p95`   | Representative value under high load.                                         |
+| `p99`   | "Near worst-case." **Use this value for threshold checks.**                   |
+| `max`   | Slowest single run. Prone to incidental outliers such as GC pauses.           |
 
-時間の単位は `ns`（ナノ秒）・`us`（マイクロ秒）・`ms`（ミリ秒）で自動切り替えされます。
+Time units are automatically switched between `ns` (nanoseconds), `us` (microseconds), and `ms` (milliseconds).
 
-#### パフォーマンス目標
+#### Performance Goal
 
-サーバーの 1 ティック予算は 50ms。合格条件は **Scenario 3 / N=5000 の p99 < 1ms**。
+The server's budget per tick is 50ms. The passing criterion is **Scenario 3 / N=5000 p99 < 1ms**.
 
-#### CI での回帰検知
+#### Regression Detection in CI
 
 ```bash
 ./gradlew test --rerun-tasks --tests "*.BridgePerformanceBenchmark" -Dbenchmark.fail.threshold.ms=1
 ```
 
-`-Dbenchmark.fail.threshold.ms` を指定すると、Scenario 3 / N=5000 の p99 がその値（ミリ秒）を超えたときにテストが失敗します。省略時は結果を表示するだけで常に成功します。
+When `-Dbenchmark.fail.threshold.ms` is specified, the test fails if the p99 of Scenario 3 / N=5000 exceeds that value (in milliseconds). If omitted, results are only displayed and the test always passes.
 
-#### 出力例
+#### Sample Output
 
 ```
 === Scenario 1: Cache Miss (layout rebuild per tick) ===
@@ -133,25 +135,25 @@ build/libs/
   cache-hit  getSlots (N=5000)   n=500  min=0ns      mean=53ns     p50=0ns      p95=100ns    p99=200ns    max=2.20us
 ```
 
-### テクスチャのカスタマイズ
+### Customizing Textures
 
-| 対象               | 配置先                                                                   |
-| ------------------ | ------------------------------------------------------------------------ |
-| ブロックテクスチャ | `src/main/resources/assets/buildinggadgetrefinedstorage/textures/block/` |
-| アイテムアイコン   | `src/main/resources/assets/buildinggadgetrefinedstorage/textures/item/`  |
+| Target          | Path                                                                     |
+| --------------- | ------------------------------------------------------------------------ |
+| Block textures  | `src/main/resources/assets/buildinggadgetrefinedstorage/textures/block/` |
+| Item icons      | `src/main/resources/assets/buildinggadgetrefinedstorage/textures/item/`  |
 
-テクスチャを変更する場合は、`models/block/*.json` または `models/item/*.json` の `textures` フィールドも合わせて更新してください。
+When changing textures, also update the `textures` field in `models/block/*.json` or `models/item/*.json` accordingly.
 
-- フォーマット：PNG（透過可）
-- ブロック：`16x16`（高解像度にする場合は `32x32` や `64x64` でも可。縦横比は正方形を維持）
-- アイテム：`16x16` の透過 PNG（正方形推奨）
+- Format: PNG (transparency supported)
+- Block: `16x16` (higher resolutions like `32x32` or `64x64` are also fine; keep the aspect ratio square)
+- Item: `16x16` transparent PNG (square recommended)
 
-**例：`refined_storage_bridge` を独自テクスチャに差し替える場合**
+**Example: Replacing `refined_storage_bridge` with a custom texture**
 
-1. `textures/block/refined_storage_bridge.png` を作成する。
-2. `models/block/refined_storage_bridge_off.json` と `refined_storage_bridge_on.json` の `textures` からそのファイルを参照する。
+1. Create `textures/block/refined_storage_bridge.png`.
+2. Reference the file from the `textures` field in `models/block/refined_storage_bridge_off.json` and `refined_storage_bridge_on.json`.
 
-**例：`fluid_proxy` アイテムを独自テクスチャに差し替える場合**
+**Example: Replacing the `fluid_proxy` item with a custom texture**
 
-1. `textures/item/fluid_proxy.png` を作成する。
-2. `models/item/fluid_proxy.json` の `layer0` にそのファイルを設定する。
+1. Create `textures/item/fluid_proxy.png`.
+2. Set the file in the `layer0` field of `models/item/fluid_proxy.json`.
