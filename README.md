@@ -1,5 +1,7 @@
 # Building Gadget Refined Storage Bridge
 
+https://github.com/user-attachments/assets/d9236cfd-bd40-41c8-96e0-bdad3c80e508
+
 > 日本語版は [README_ja.md](./README_ja.md) を参照してください。
 
 A Kotlin-based mod for NeoForge `1.21.1`.
