@@ -8,7 +8,7 @@ NeoForge `1.21.1` 向けの Kotlin 製 mod です。
 
 ## 前提 Mod
 
-- [Building Gadgets 2](https://www.curseforge.com/minecraft/mc-mods/building-gadgets-2) `1.3.9`
+- [Building Gadgets 2](https://www.curseforge.com/minecraft/mc-mods/building-gadgets) `1.3.9`
 - [Refined Storage 2](https://www.curseforge.com/minecraft/mc-mods/refined-storage) `2.0.1`
 
 ## インストール
