@@ -10,7 +10,7 @@ Adds the `refined_storage_bridge` block. By specifying this block as the `bind t
 
 ## Prerequisites
 
-- [Building Gadgets 2](https://www.curseforge.com/minecraft/mc-mods/building-gadgets-2) `1.3.9`
+- [Building Gadgets 2](https://www.curseforge.com/minecraft/mc-mods/building-gadgets) `1.3.9`
 - [Refined Storage 2](https://www.curseforge.com/minecraft/mc-mods/refined-storage) `2.0.1`
 
 ## Installation
