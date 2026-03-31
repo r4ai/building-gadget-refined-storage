@@ -1,6 +1,6 @@
 # <img src="docs/images/icon.png" width="48" height="48" align="center"> Building Gadget Refined Storage Bridge
 
-https://github.com/user-attachments/assets/d9236cfd-bd40-41c8-96e0-bdad3c80e508
+https://github.com/user-attachments/assets/5f76aac1-23f3-4aa1-92b2-9a51376dad63
 
 > 日本語版は [README_ja.md](./README_ja.md) を参照してください。
 
