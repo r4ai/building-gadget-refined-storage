@@ -1,4 +1,4 @@
-# Building Gadget Refined Storage Bridge
+# <img src="docs/images/icon.png" width="48" height="48" align="center"> Building Gadget Refined Storage Bridge
 
 https://github.com/user-attachments/assets/d9236cfd-bd40-41c8-96e0-bdad3c80e508
 
